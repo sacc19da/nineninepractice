@@ -100,5 +100,37 @@
   .number-cell {
     @apply w-12 h-12 text-xl;
   }
+  
+  /* 手機版遊戲頁面優化 */
+  .game-container {
+    @apply px-4 py-2;
+  }
+  
+  /* 連連看遊戲手機優化 */
+  .matching-game {
+    @apply p-4;
+  }
+  
+  .matching-game .question-item,
+  .matching-game .answer-item {
+    @apply text-sm p-2;
+  }
+  
+  /* 輸入框手機優化 */
+  input[type="tel"] {
+    @apply text-lg;
+    font-size: max(16px, 1rem); /* 避免iOS縮放 */
+  }
+  
+  /* 按鈕手機優化 */
+  .btn-primary,
+  .btn-secondary {
+    @apply text-sm px-4 py-2;
+  }
+  
+  /* 泡泡遊戲手機優化 */
+  .bubble-game-container {
+    @apply p-2;
+  }
 }
 

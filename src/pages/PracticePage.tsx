@@ -156,7 +156,7 @@ function PracticePage() {
             <div className="flex flex-wrap items-center gap-4 justify-center">
               <span className="text-white">第一個數字範圍：</span>
               <input
-                type="number"
+                type="tel"
                 min="1"
                 max="9"
                 value={customRange.multiplicandMin}
@@ -168,7 +168,7 @@ function PracticePage() {
               />
               <span className="text-white">到</span>
               <input
-                type="number"
+                type="tel"
                 min="1"
                 max="9"
                 value={customRange.multiplicandMax}
@@ -183,7 +183,7 @@ function PracticePage() {
             <div className="flex flex-wrap items-center gap-4 justify-center">
               <span className="text-white">第二個數字範圍：</span>
               <input
-                type="number"
+                type="tel"
                 min="1"
                 max="9"
                 value={customRange.multiplierMin}
@@ -195,7 +195,7 @@ function PracticePage() {
               />
               <span className="text-white">到</span>
               <input
-                type="number"
+                type="tel"
                 min="1"
                 max="9"
                 value={customRange.multiplierMax}
@@ -308,7 +308,7 @@ function PracticePage() {
                         (window as any).answerInput = el
                       }
                     }}
-                    type="number"
+                    type="tel"
                     className="text-4xl font-bold text-center w-32 h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
                     placeholder="?"
                     autoFocus

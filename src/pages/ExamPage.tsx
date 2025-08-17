@@ -292,7 +292,7 @@ function ExamPage() {
                       <label className="block text-white text-sm font-medium mb-2">第一個數字範圍</label>
                       <div className="flex items-center space-x-2">
                         <input
-                          type="number"
+                          type="tel"
                           min="1"
                           max="9"
                           value={customExam.multiplicandMin}
@@ -301,7 +301,7 @@ function ExamPage() {
                         />
                         <span className="text-white">到</span>
                         <input
-                          type="number"
+                          type="tel"
                           min="1"
                           max="9"
                           value={customExam.multiplicandMax}
@@ -316,7 +316,7 @@ function ExamPage() {
                       <label className="block text-white text-sm font-medium mb-2">第二個數字範圍</label>
                       <div className="flex items-center space-x-2">
                         <input
-                          type="number"
+                          type="tel"
                           min="1"
                           max="9"
                           value={customExam.multiplierMin}
@@ -325,7 +325,7 @@ function ExamPage() {
                         />
                         <span className="text-white">到</span>
                         <input
-                          type="number"
+                          type="tel"
                           min="1"
                           max="9"
                           value={customExam.multiplierMax}
@@ -397,7 +397,7 @@ function ExamPage() {
                 {/* 答案輸入 */}
                 <div className="flex justify-center">
                   <input
-                    type="number"
+                    type="tel"
                     className="text-4xl font-bold text-center w-32 h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
                     placeholder="?"
                     autoFocus

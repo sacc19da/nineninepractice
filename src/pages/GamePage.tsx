@@ -207,9 +207,11 @@ function GamePage() {
     }
   }
 
-  // ● 把手拖曳開始
-  const handleDotMouseDown = (e: React.MouseEvent, type: 'question' | 'answer', index: number) => {
+  // ● 把手拖曳開始（支援觸控）
+  const handleDotMouseDown = (e: React.MouseEvent | React.TouchEvent, type: 'question' | 'answer', index: number) => {
     if (!matchingGame) return
+    e.preventDefault()
+    
     const dotRect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const svgRect = matchingSvgRef.current?.getBoundingClientRect()
     const startX = svgRect ? dotRect.left + dotRect.width / 2 - svgRect.left : dotRect.left + dotRect.width / 2
@@ -222,21 +224,25 @@ function GamePage() {
       dragType: type,
       dragIndex: index
     })
-    e.preventDefault()
   }
 
-  // 全域 mousemove/mouseup 追蹤拖曳
+  // 全域 mousemove/mouseup 追蹤拖曳（支援觸控）
   useEffect(() => {
-    const onMove = (ev: MouseEvent) => {
+    const onMove = (ev: MouseEvent | TouchEvent) => {
       if (!matchingGame?.isDragging) return
       const svgRect = matchingSvgRef.current?.getBoundingClientRect()
-      const x = svgRect ? ev.clientX - svgRect.left : ev.clientX
-      const y = svgRect ? ev.clientY - svgRect.top : ev.clientY
+      const clientX = 'touches' in ev ? ev.touches[0]?.clientX : ev.clientX
+      const clientY = 'touches' in ev ? ev.touches[0]?.clientY : ev.clientY
+      const x = svgRect ? clientX - svgRect.left : clientX
+      const y = svgRect ? clientY - svgRect.top : clientY
       setMatchingGame(prev => prev ? { ...prev, dragEnd: { x, y } } : prev)
     }
-    const onUp = (ev: MouseEvent) => {
+    
+    const onUp = (ev: MouseEvent | TouchEvent) => {
       if (!matchingGame?.isDragging) return
-      const elements = document.elementsFromPoint(ev.clientX, ev.clientY)
+      const clientX = 'touches' in ev ? ev.changedTouches[0]?.clientX : ev.clientX
+      const clientY = 'touches' in ev ? ev.changedTouches[0]?.clientY : ev.clientY
+      const elements = document.elementsFromPoint(clientX, clientY)
       const target = elements.find(el => el.classList?.contains('match-dot')) as HTMLElement | undefined
       if (target && matchingGame.dragType && matchingGame.dragIndex !== null) {
         const targetType = (target.dataset.type as 'question' | 'answer')
@@ -258,11 +264,17 @@ function GamePage() {
         dragIndex: null
       } : prev)
     }
+    
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove as EventListener)
+    window.addEventListener('touchend', onUp as EventListener)
+    
     return () => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove as EventListener)
+      window.removeEventListener('touchend', onUp as EventListener)
     }
   }, [matchingGame?.isDragging])
 
@@ -626,17 +638,74 @@ function GamePage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className="bg-white rounded-2xl shadow-xl p-4 md:p-8 matching-game"
         >
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">🔗 連線配對遊戲</h2>
-            <p className="text-gray-600">點擊左邊的乘法算式，再點擊右邊的正確答案來配對</p>
+            <p className="text-gray-600 text-sm md:text-base">
+              <span className="block md:hidden">點擊算式卡片，再點擊答案卡片來配對</span>
+              <span className="hidden md:block">點擊或拖拽連線來配對左邊的乘法算式和右邊的正確答案</span>
+            </p>
             <div className="text-lg font-bold text-primary-600 mt-2">
               得分: {matchingGame.score} / {matchingGame.totalPairs}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+          {/* 手機版：垂直佈局 */}
+          <div className="block md:hidden">
+            {/* 算式區域 */}
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">請選擇算式</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {matchingGame.questions.map((question, index) => (
+                  <motion.button
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleMatchingSelection('question', index)}
+                    disabled={matchingGame.matchedPairs.includes(index)}
+                    className={`p-3 rounded-xl text-base font-bold transition-all cursor-pointer text-center ${
+                      matchingGame.matchedPairs.includes(index)
+                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                        : matchingGame.selectedQuestion === index
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300 shadow-lg'
+                        : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:bg-gray-200'
+                    }`}
+                  >
+                    {question.multiplicand} × {question.multiplier} = ?
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* 答案區域 */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">請選擇答案</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {matchingGame.answers.map((answer, index) => (
+                  <motion.button
+                    key={index}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleMatchingSelection('answer', index)}
+                    disabled={matchingGame.matchedPairs.includes(index + 6)}
+                    className={`p-3 rounded-xl text-base font-bold transition-all cursor-pointer text-center ${
+                      matchingGame.matchedPairs.includes(index + 6)
+                        ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                        : matchingGame.selectedAnswer === index
+                        ? 'bg-primary-100 text-primary-700 border-2 border-primary-300 shadow-lg'
+                        : 'bg-gray-100 text-gray-700 border-2 border-gray-300 hover:bg-gray-200'
+                    }`}
+                  >
+                    {answer}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 桌面版：水平佈局 */}
+          <div className="hidden md:grid md:grid-cols-2 gap-4 md:gap-8 relative">
             {/* 連線畫布 */}
             <svg ref={matchingSvgRef} className="absolute inset-0 w-full h-full pointer-events-none z-10">
               {/* 拖曳中的線（px 座標）*/}
@@ -691,18 +760,18 @@ function GamePage() {
             </svg>
 
             {/* 左邊：乘法算式（●在右）*/}
-            <div>
+            <div className="order-1">
               <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">乘法算式</h3>
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {matchingGame.questions.map((question, index) => (
-                  <div key={index} className="flex items-center gap-3">
+                  <div key={index} className="flex items-center gap-2 md:gap-3">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleMatchingSelection('question', index)}
                       disabled={matchingGame.matchedPairs.includes(index)}
                       data-index={index}
-                      className={`question-item flex-1 p-4 rounded-xl text-lg font-bold transition-all cursor-pointer text-left ${
+                      className={`question-item flex-1 p-3 md:p-4 rounded-xl text-base md:text-lg font-bold transition-all cursor-pointer text-left ${
                         matchingGame.matchedPairs.includes(index)
                           ? 'bg-green-100 text-green-700 border-2 border-green-300'
                           : matchingGame.selectedQuestion === index
@@ -713,10 +782,11 @@ function GamePage() {
                       {question.multiplicand} × {question.multiplier} = ?
                     </motion.button>
                     <button
-                      className="match-dot w-5 h-5 rounded-full bg-gray-400 hover:bg-primary-500 focus:outline-none"
+                      className="match-dot w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-400 hover:bg-primary-500 focus:outline-none flex-shrink-0"
                       data-type="question"
                       data-index={index}
                       onMouseDown={(e) => handleDotMouseDown(e, 'question', index)}
+                      onTouchStart={(e) => handleDotMouseDown(e, 'question', index)}
                       aria-label="拖曳連線"
                     />
                   </div>
@@ -725,16 +795,17 @@ function GamePage() {
             </div>
 
             {/* 右邊：答案選項（●在左）*/}
-            <div>
+            <div className="order-2">
               <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">答案選項</h3>
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {matchingGame.answers.map((answer, index) => (
-                  <div key={index} className="flex items-center gap-3">
+                  <div key={index} className="flex items-center gap-2 md:gap-3">
                     <button
-                      className="match-dot w-5 h-5 rounded-full bg-gray-400 hover:bg-primary-500 focus:outline-none"
+                      className="match-dot w-4 h-4 md:w-5 md:h-5 rounded-full bg-gray-400 hover:bg-primary-500 focus:outline-none flex-shrink-0"
                       data-type="answer"
                       data-index={index}
                       onMouseDown={(e) => handleDotMouseDown(e, 'answer', index)}
+                      onTouchStart={(e) => handleDotMouseDown(e, 'answer', index)}
                       aria-label="拖曳連線"
                     />
                     <motion.button
@@ -743,7 +814,7 @@ function GamePage() {
                       onClick={() => handleMatchingSelection('answer', index)}
                       disabled={matchingGame.matchedPairs.includes(index + 6)}
                       data-index={index + 6}
-                      className={`answer-item flex-1 p-4 rounded-xl text-lg font-bold transition-all cursor-pointer ${
+                      className={`answer-item flex-1 p-3 md:p-4 rounded-xl text-base md:text-lg font-bold transition-all cursor-pointer ${
                         matchingGame.matchedPairs.includes(index + 6)
                           ? 'bg-green-100 text-green-700 border-2 border-green-300'
                           : matchingGame.selectedAnswer === index
@@ -779,21 +850,21 @@ function GamePage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className="bg-white rounded-2xl shadow-xl p-4 md:p-8 bubble-game-container"
         >
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">🫧 數字泡泡遊戲</h2>
-            <p className="text-gray-600">點擊正確答案的泡泡</p>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="text-lg font-bold text-primary-600">得分: {bubbleGame.score}</div>
-              <div className="text-lg font-bold text-red-600">時間: {bubbleGame.timeLeft}s</div>
-              <div className="text-lg font-bold text-purple-600">關卡: {bubbleGame.level}/5</div>
-              <div className="text-lg font-bold text-orange-600">本題錯誤: {bubbleGame.currentQuestionWrongAttempts}次</div>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">🫧 數字泡泡遊戲</h2>
+            <p className="text-gray-600 text-sm md:text-base">點擊正確答案的泡泡</p>
+            <div className="flex flex-wrap justify-center gap-2 md:gap-6 mt-4 text-sm md:text-lg">
+              <div className="font-bold text-primary-600">得分: {bubbleGame.score}</div>
+              <div className="font-bold text-red-600">時間: {bubbleGame.timeLeft}s</div>
+              <div className="font-bold text-purple-600">關卡: {bubbleGame.level}/5</div>
+              <div className="font-bold text-orange-600">本題錯誤: {bubbleGame.currentQuestionWrongAttempts}次</div>
             </div>
           </div>
 
           <div className="text-center mb-8">
-            <div className="text-4xl font-bold text-gray-800">
+            <div className="text-2xl md:text-4xl font-bold text-gray-800">
               {bubbleGame.currentQuestion?.multiplicand} × {bubbleGame.currentQuestion?.multiplier} = ?
             </div>
           </div>
@@ -841,19 +912,19 @@ function GamePage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className="bg-white rounded-2xl shadow-xl p-4 md:p-8 game-container"
         >
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">🏰 闖關冒險</h2>
-            <p className="text-gray-600">通過關卡，挑戰越來越難的乘法題</p>
-            <div className="flex justify-center gap-8 mt-4">
-              <div className="text-lg font-bold text-primary-600">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">🏰 闖關冒險</h2>
+            <p className="text-gray-600 text-sm md:text-base">通過關卡，挑戰越來越難的乘法題</p>
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 mt-4 text-sm md:text-lg">
+              <div className="font-bold text-primary-600">
                 關卡: {adventureGame.currentLevel}
               </div>
-              <div className="text-lg font-bold text-green-600">
+              <div className="font-bold text-green-600">
                 得分: {adventureGame.score}
               </div>
-              <div className="text-lg font-bold text-red-600">
+              <div className="font-bold text-red-600">
                 生命: {adventureGame.lives} ❤️
               </div>
             </div>
@@ -861,14 +932,14 @@ function GamePage() {
 
           {adventureGame.isGameActive && adventureGame.questions[adventureGame.currentQuestionIndex] && (
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-800 mb-8">
+              <div className="text-2xl md:text-4xl font-bold text-gray-800 mb-8">
                 {adventureGame.questions[adventureGame.currentQuestionIndex].multiplicand} × {adventureGame.questions[adventureGame.currentQuestionIndex].multiplier} = ?
               </div>
               
               <div className="flex justify-center">
                 <input
-                  type="number"
-                  className="text-3xl font-bold text-center w-32 h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
+                  type="tel"
+                  className="text-2xl md:text-3xl font-bold text-center w-24 md:w-32 h-12 md:h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
                   placeholder="?"
                   autoFocus
                   onKeyPress={(e) => {
@@ -984,19 +1055,19 @@ function GamePage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className="bg-white rounded-2xl shadow-xl p-4 md:p-8 game-container"
         >
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">⏰ 限時挑戰</h2>
-            <p className="text-gray-600">在限定時間內答對越多題目越好</p>
-            <div className="flex justify-center gap-8 mt-4">
-              <div className="text-lg font-bold text-primary-600">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">⏰ 限時挑戰</h2>
+            <p className="text-gray-600 text-sm md:text-base">在限定時間內答對越多題目越好</p>
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 mt-4 text-sm md:text-lg">
+              <div className="font-bold text-primary-600">
                 題目: {timedGame.currentQuestionIndex + 1}/{timedGame.questions.length}
               </div>
-              <div className="text-lg font-bold text-green-600">
+              <div className="font-bold text-green-600">
                 得分: {timedGame.score}
               </div>
-              <div className="text-lg font-bold text-red-600">
+              <div className="font-bold text-red-600">
                 時間: {timedGame.timeLeft}s
               </div>
             </div>
@@ -1004,15 +1075,15 @@ function GamePage() {
 
           {timedGame.isGameActive && timedGame.questions[timedGame.currentQuestionIndex] && (
             <div className="text-center">
-              <div className="text-4xl font-bold text-gray-800 mb-8">
+              <div className="text-2xl md:text-4xl font-bold text-gray-800 mb-8">
                 {timedGame.questions[timedGame.currentQuestionIndex].multiplicand} × {timedGame.questions[timedGame.currentQuestionIndex].multiplier} = ?
               </div>
               
               <div className="flex justify-center">
                 <input
                   key={timedGame.currentQuestionIndex} // 加入key確保重新渲染
-                  type="number"
-                  className="text-3xl font-bold text-center w-32 h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
+                  type="tel"
+                  className="text-2xl md:text-3xl font-bold text-center w-24 md:w-32 h-12 md:h-16 border-4 border-primary-300 rounded-xl focus:border-primary-500 focus:outline-none"
                   placeholder="?"
                   autoFocus
                   onKeyPress={(e) => {
@@ -1062,7 +1133,7 @@ function GamePage() {
               
               <button
                 onClick={() => {
-                  const inputs = document.querySelectorAll('input[type="number"]') as NodeListOf<HTMLInputElement>
+                  const inputs = document.querySelectorAll('input[type="tel"]') as NodeListOf<HTMLInputElement>
                   const input = inputs[inputs.length - 1] // 取得最後一個輸入框
                   if (input && input.value) {
                     const userAnswer = parseInt(input.value)
