@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局樣式設定 */
+@layer base {
+  html {
+    font-family: 'Varela Round', system-ui, sans-serif;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    font-family: 'Varela Round', system-ui, sans-serif;
+  }
+}
+
+/* 自定義組件樣式 */
+@layer components {
+  /* 按鈕樣式 */
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-full 
+           shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-500 hover:bg-secondary-600 text-white font-bold py-3 px-6 rounded-full 
+           shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  .btn-success {
+    @apply bg-success hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full 
+           shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95;
+  }
+  
+  /* 卡片樣式 */
+  .card {
+    @apply bg-white rounded-2xl shadow-xl p-6 border border-gray-100;
+  }
+  
+  /* 數字格子樣式 */
+  .number-cell {
+    @apply w-16 h-16 flex items-center justify-center text-2xl font-bold rounded-lg
+           bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-blue-300
+           hover:from-blue-200 hover:to-blue-300 cursor-pointer transition-all duration-200
+           transform hover:scale-110 active:scale-95;
+  }
+  
+  .number-cell.correct {
+    @apply from-green-100 to-green-200 border-green-400 text-green-700;
+  }
+  
+  .number-cell.incorrect {
+    @apply from-red-100 to-red-200 border-red-400 text-red-700;
+  }
+  
+  /* 動畫效果 */
+  .bounce-in {
+    animation: bounceIn 0.6s ease-out;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+}
+
+/* 自定義動畫 */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .number-cell {
+    @apply w-12 h-12 text-xl;
+  }
+}
+
